@@ -16,6 +16,9 @@ out/
 # debug
 npm-debug.log*
 
+# playwright
+.playwright-mcp/
+
 # misc
 .DS_Store
 *.tsbuildinfo
