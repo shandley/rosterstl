@@ -41,4 +41,13 @@ Reference: `original_design.html` — static mockup of the dashboard.
 
 ## Build Phases
 
-See `mvp.md` for full plan. Currently: **Phase 1 — Foundation**.
+See `mvp.md` for full plan. Currently: **Phase 2 — Core Features** (complete).
+
+## Key Patterns
+
+- **Team layout**: `src/app/teams/[teamId]/layout.tsx` wraps all team pages with sidebar + topbar
+- **Team auth utility**: `src/lib/utils/team-auth.ts` — `getTeamMembership(teamId)` for auth + role checking
+- **Server actions**: `src/lib/actions/{teams,players,events,availability,announcements}.ts`
+- **Dialog pattern**: shadcn Dialog with `useActionState` or manual `useState` for forms
+- **RSVP**: `useOptimistic` + `useTransition` for instant feedback
+- **Base UI Select**: `onValueChange` passes `string | null` (not just `string`)

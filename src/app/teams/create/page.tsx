@@ -49,6 +49,7 @@ export default function CreateTeamPage() {
               name="name"
               placeholder="e.g., FC STL U18 Blue"
               required
+              autoComplete="off"
               className="mt-1"
             />
           </div>
