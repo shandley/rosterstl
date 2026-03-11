@@ -156,20 +156,24 @@ notifications (id, user_id, type, payload, read, created_at)
 
 ## Build Order / Suggested Phases
 
-### Phase 1 — Foundation
-- [ ] Supabase project setup (auth + schema)
-- [ ] Next.js scaffold with Tailwind + shadcn/ui
-- [ ] Auth flow (sign up, login, magic link, protected routes)
-- [ ] Basic team creation and join flow
+### Phase 1 — Foundation ✅
+- [x] Supabase project setup (auth + schema)
+- [x] Next.js scaffold with Tailwind + shadcn/ui
+- [x] Auth flow (sign up, login, magic link, protected routes)
+- [x] Basic team creation and join flow
 
-### Phase 2 — Core Features
-- [ ] Roster management
-- [ ] Event creation with venue selection
-- [ ] Availability / RSVP system
-- [ ] Team announcements
+### Phase 2 — Core Features ✅
+- [x] Roster management (add/edit/remove players, sport-specific positions)
+- [x] Event creation with venue selection (single + recurring events)
+- [x] Availability / RSVP system (optimistic UI, availability matrix)
+- [x] Team announcements
+- [x] Team sidebar navigation + dashboard with stat cards
+- [x] Delete team with confirmation
 
-### Phase 3 — St. Louis Data + Polish
-- [ ] Seed venue database with St. Louis fields and parks
+### Phase 3 — St. Louis Data + Polish (in progress)
+- [x] Seed venue database with 51 St. Louis fields and parks
+- [x] Searchable venue picker with city grouping
+- [x] Google Maps directions links on event cards and dashboard
 - [ ] Weather alert integration
 - [ ] Push + email notifications
 - [ ] Mobile-responsive polish

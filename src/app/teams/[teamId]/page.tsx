@@ -34,7 +34,7 @@ export default async function TeamDashboardPage({
 
   const { data: upcomingEvents } = await supabase
     .from("events")
-    .select("id, title, event_type, start_time, opponent_name, venues(name)")
+    .select("id, title, event_type, start_time, opponent_name, venues(name, address, city, state)")
     .eq("team_id", teamId)
     .gte("start_time", new Date().toISOString())
     .order("start_time")
@@ -110,7 +110,7 @@ export default async function TeamDashboardPage({
               {upcomingEvents && upcomingEvents.length > 0 ? (
                 upcomingEvents.map((event) => {
                   const date = new Date(event.start_time);
-                  const venue = event.venues as unknown as { name: string } | null;
+                  const venue = event.venues as unknown as { name: string; address: string; city: string; state: string } | null;
                   return (
                     <div
                       key={event.id}
@@ -135,7 +135,19 @@ export default async function TeamDashboardPage({
                             hour: "numeric",
                             minute: "2-digit",
                           })}
-                          {venue ? ` · ${venue.name}` : ""}
+                          {venue ? (
+                            <>
+                              {" · "}
+                              <a
+                                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${venue.name}, ${venue.address}, ${venue.city}, ${venue.state}`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-accent hover:underline"
+                              >
+                                {venue.name}
+                              </a>
+                            </>
+                          ) : ""}
                           {event.opponent_name
                             ? ` · vs ${event.opponent_name}`
                             : ""}

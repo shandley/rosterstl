@@ -12,7 +12,7 @@ type Event = {
   opponent_name: string | null;
   is_home_game: boolean | null;
   notes: string | null;
-  venues: { name: string } | null;
+  venues: { name: string; address: string; city: string; state: string } | null;
 };
 
 type ScheduleTabsProps = {

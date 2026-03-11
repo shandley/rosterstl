@@ -13,7 +13,7 @@ type EventCardProps = {
     opponent_name: string | null;
     is_home_game: boolean | null;
     notes: string | null;
-    venues: { name: string } | null;
+    venues: { name: string; address: string; city: string; state: string } | null;
   };
   isNext: boolean;
   myPlayers: { id: string; full_name: string }[];
@@ -61,7 +61,20 @@ export function EventCard({
         </div>
         <p className="mt-0.5 text-xs text-muted-foreground">
           {time}
-          {event.venues ? ` · ${event.venues.name}` : ""}
+          {event.venues ? (
+            <>
+              {" · "}
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${event.venues.name}, ${event.venues.address}, ${event.venues.city}, ${event.venues.state}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {event.venues.name}
+              </a>
+            </>
+          ) : ""}
           {event.opponent_name
             ? ` · ${event.is_home_game ? "vs" : "@"} ${event.opponent_name}`
             : ""}

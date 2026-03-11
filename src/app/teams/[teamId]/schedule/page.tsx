@@ -17,7 +17,7 @@ export default async function SchedulePage({
   // Fetch all events for the team
   const { data: events } = await supabase
     .from("events")
-    .select("id, title, event_type, start_time, end_time, opponent_name, is_home_game, notes, venues(name)")
+    .select("id, title, event_type, start_time, end_time, opponent_name, is_home_game, notes, venues(name, address, city, state)")
     .eq("team_id", teamId)
     .order("start_time");
 
