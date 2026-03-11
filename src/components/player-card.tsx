@@ -13,6 +13,7 @@ type PlayerCardProps = {
   };
   canEdit: boolean;
   teamId: string;
+  sport: string;
 };
 
 const AVATAR_COLORS = [
@@ -41,7 +42,7 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export function PlayerCard({ player, canEdit, teamId }: PlayerCardProps) {
+export function PlayerCard({ player, canEdit, teamId, sport }: PlayerCardProps) {
   const [editOpen, setEditOpen] = useState(false);
 
   return (
@@ -79,6 +80,7 @@ export function PlayerCard({ player, canEdit, teamId }: PlayerCardProps) {
         <EditPlayerDialog
           player={player}
           teamId={teamId}
+          sport={sport}
           open={editOpen}
           onOpenChange={setEditOpen}
         />

@@ -2,9 +2,17 @@
 
 import { useState } from "react";
 import { addPlayer } from "@/lib/actions/players";
+import { SPORT_POSITIONS } from "@/lib/sport-positions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -14,10 +22,18 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export function AddPlayerDialog({ teamId }: { teamId: string }) {
+export function AddPlayerDialog({
+  teamId,
+  sport,
+}: {
+  teamId: string;
+  sport: string;
+}) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  const positions = SPORT_POSITIONS[sport] ?? [];
 
   async function handleSubmit(formData: FormData) {
     setPending(true);
@@ -74,14 +90,28 @@ export function AddPlayerDialog({ teamId }: { teamId: string }) {
               />
             </div>
             <div>
-              <Label htmlFor="position">Position</Label>
-              <Input
-                id="position"
-                name="position"
-                placeholder="e.g., Midfielder"
-                autoComplete="off"
-                className="mt-1"
-              />
+              <Label>Position</Label>
+              {positions.length > 0 ? (
+                <Select name="position">
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select position" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {positions.map((pos) => (
+                      <SelectItem key={pos} value={pos}>
+                        {pos}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  name="position"
+                  placeholder="e.g., Midfielder"
+                  autoComplete="off"
+                  className="mt-1"
+                />
+              )}
             </div>
           </div>
 

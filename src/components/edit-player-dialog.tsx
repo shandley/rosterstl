@@ -2,9 +2,17 @@
 
 import { useState } from "react";
 import { updatePlayer, removePlayer } from "@/lib/actions/players";
+import { SPORT_POSITIONS } from "@/lib/sport-positions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +29,7 @@ type EditPlayerDialogProps = {
     position: string | null;
   };
   teamId: string;
+  sport: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -28,12 +37,15 @@ type EditPlayerDialogProps = {
 export function EditPlayerDialog({
   player,
   teamId,
+  sport,
   open,
   onOpenChange,
 }: EditPlayerDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const positions = SPORT_POSITIONS[sport] ?? [];
 
   async function handleUpdate(formData: FormData) {
     setPending(true);
@@ -107,14 +119,31 @@ export function EditPlayerDialog({
               />
             </div>
             <div>
-              <Label htmlFor="editPosition">Position</Label>
-              <Input
-                id="editPosition"
-                name="position"
-                defaultValue={player.position ?? ""}
-                autoComplete="off"
-                className="mt-1"
-              />
+              <Label>Position</Label>
+              {positions.length > 0 ? (
+                <Select
+                  name="position"
+                  defaultValue={player.position ?? undefined}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select position" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {positions.map((pos) => (
+                      <SelectItem key={pos} value={pos}>
+                        {pos}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  name="position"
+                  defaultValue={player.position ?? ""}
+                  autoComplete="off"
+                  className="mt-1"
+                />
+              )}
             </div>
           </div>
 

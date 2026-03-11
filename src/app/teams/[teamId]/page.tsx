@@ -3,6 +3,7 @@ import { getTeamMembership } from "@/lib/utils/team-auth";
 import { TeamTopbar } from "@/components/team-topbar";
 import { InviteButton } from "./invite-button";
 import { DeleteTeamDialog } from "@/components/delete-team-dialog";
+import Link from "next/link";
 
 export default async function TeamDashboardPage({
   params,
@@ -72,18 +73,21 @@ export default async function TeamDashboardPage({
             value={String(players?.length ?? 0)}
             subtext="players"
             color="blue"
+            href={`/teams/${teamId}/roster`}
           />
           <StatCard
             label="Members"
             value={String(members?.length ?? 0)}
             subtext="coaches & parents"
             color="gold"
+            href={`/teams/${teamId}`}
           />
           <StatCard
             label="Upcoming"
             value={String(upcomingEvents?.length ?? 0)}
             subtext="events scheduled"
             color="green"
+            href={`/teams/${teamId}/schedule`}
           />
         </div>
 
@@ -252,11 +256,13 @@ function StatCard({
   value,
   subtext,
   color,
+  href,
 }: {
   label: string;
   value: string;
   subtext: string;
   color: "blue" | "gold" | "green" | "red";
+  href: string;
 }) {
   const borderColors = {
     blue: "border-t-primary",
@@ -266,15 +272,16 @@ function StatCard({
   };
 
   return (
-    <div
-      className={`rounded-lg border border-border border-t-2 ${borderColors[color]} bg-popover p-4`}
+    <Link
+      href={href}
+      className={`block rounded-lg border border-border border-t-2 ${borderColors[color]} bg-popover p-4 transition hover:border-accent/40`}
     >
       <p className="text-[11px] font-semibold uppercase tracking-[1.5px] text-muted-foreground">
         {label}
       </p>
       <p className="mt-1 font-heading text-4xl font-extrabold">{value}</p>
       <p className="mt-0.5 text-xs text-muted-foreground">{subtext}</p>
-    </div>
+    </Link>
   );
 }
 

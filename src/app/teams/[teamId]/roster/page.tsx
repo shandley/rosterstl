@@ -13,6 +13,14 @@ export default async function RosterPage({
   const { user, isCoachOrManager } = await getTeamMembership(teamId);
   const supabase = await createClient();
 
+  const { data: team } = await supabase
+    .from("teams")
+    .select("sport")
+    .eq("id", teamId)
+    .single();
+
+  const sport = team?.sport ?? "";
+
   const { data: players } = await supabase
     .from("players")
     .select("id, full_name, jersey_number, position, managed_by")
@@ -22,7 +30,7 @@ export default async function RosterPage({
   return (
     <>
       <TeamTopbar title="Roster">
-        <AddPlayerDialog teamId={teamId} />
+        <AddPlayerDialog teamId={teamId} sport={sport} />
       </TeamTopbar>
 
       <div className="p-7">
@@ -36,6 +44,7 @@ export default async function RosterPage({
                   isCoachOrManager || player.managed_by === user.id
                 }
                 teamId={teamId}
+                sport={sport}
               />
             ))}
           </div>

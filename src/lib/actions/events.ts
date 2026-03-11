@@ -49,6 +49,84 @@ export async function createEvent(formData: FormData) {
   return { success: true };
 }
 
+export async function createRecurringEvents(data: {
+  teamId: string;
+  title: string;
+  eventType: string;
+  startTimeOfDay: string; // "HH:MM" format
+  endTimeOfDay: string;
+  venueId: string | null;
+  notes: string | null;
+  opponentName: string | null;
+  isHomeGame: boolean | null;
+  days: number[]; // 0=Sun, 1=Mon, ..., 6=Sat
+  rangeStart: string; // "YYYY-MM-DD"
+  rangeEnd: string; // "YYYY-MM-DD"
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Not authenticated" };
+
+  if (!data.teamId || !data.title || !data.eventType || !data.startTimeOfDay || !data.endTimeOfDay) {
+    return { error: "Required fields are missing" };
+  }
+
+  if (data.days.length === 0) {
+    return { error: "Select at least one day" };
+  }
+
+  // Generate all dates in the range that match the selected days
+  const events: {
+    team_id: string;
+    title: string;
+    event_type: string;
+    start_time: string;
+    end_time: string;
+    venue_id: string | null;
+    notes: string | null;
+    opponent_name: string | null;
+    is_home_game: boolean | null;
+    created_by: string;
+  }[] = [];
+
+  const current = new Date(data.rangeStart + "T00:00:00");
+  const end = new Date(data.rangeEnd + "T23:59:59");
+
+  while (current <= end) {
+    if (data.days.includes(current.getDay())) {
+      const dateStr = current.toISOString().split("T")[0];
+      events.push({
+        team_id: data.teamId,
+        title: data.title,
+        event_type: data.eventType,
+        start_time: new Date(`${dateStr}T${data.startTimeOfDay}`).toISOString(),
+        end_time: new Date(`${dateStr}T${data.endTimeOfDay}`).toISOString(),
+        venue_id: data.venueId,
+        notes: data.notes,
+        opponent_name: data.opponentName,
+        is_home_game: data.isHomeGame,
+        created_by: user.id,
+      });
+    }
+    current.setDate(current.getDate() + 1);
+  }
+
+  if (events.length === 0) {
+    return { error: "No events match the selected days in the date range" };
+  }
+
+  const { error } = await supabase.from("events").insert(events);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/teams/${data.teamId}/schedule`);
+  revalidatePath(`/teams/${data.teamId}`);
+  return { success: true, count: events.length };
+}
+
 export async function updateEvent(formData: FormData) {
   const supabase = await createClient();
   const {
