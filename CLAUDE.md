@@ -15,7 +15,10 @@ Hyper-local St. Louis sports team management app. Direct competitor to TeamSnap 
 - **GitHub**: shandley/rosterstl
 - **Supabase project ref**: bisutbyjjlinjpgmjbry
 - **Supabase URL**: https://bisutbyjjlinjpgmjbry.supabase.co
-- **Vercel**: connected via Supabase integration (env vars auto-populated)
+- **Vercel project**: rosterstl (framework preset: Next.js)
+- **Domain**: rosterstl.app
+- **Vercel URL**: rosterstl.vercel.app
+- **Env vars**: auto-populated via Supabase-Vercel integration
 
 ## Conventions
 
