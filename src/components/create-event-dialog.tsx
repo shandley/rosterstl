@@ -21,6 +21,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { VenuePicker } from "@/components/venue-picker";
 
 type CreateEventDialogProps = {
   teamId: string;
@@ -376,21 +377,11 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
             </div>
           )}
 
-          <div>
-            <Label>Venue</Label>
-            <Select value={venueId} onValueChange={setVenueId}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select venue (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {venues.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    {v.name} — {v.city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <VenuePicker
+            venues={venues}
+            value={venueId}
+            onChange={setVenueId}
+          />
 
           <div>
             <Label htmlFor="eventNotes">Notes</Label>
