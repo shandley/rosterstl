@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createEvent, createRecurringEvents } from "@/lib/actions/events";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,25 +37,22 @@ const DAYS = [
   { value: 6, label: "S", full: "Sat" },
 ];
 
+// Same classes as shadcn Input, but we use native <input> for date/time
+// because Base UI's InputPrimitive doesn't fire onChange for these types.
+const nativeInputClass =
+  "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30";
+
 export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
-
-  // Controlled form state — avoids native browser validation issues
-  const [title, setTitle] = useState("");
   const [eventType, setEventType] = useState<string | null>("practice");
   const [recurring, setRecurring] = useState(false);
-  const [startDate, setStartDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [seriesEndDate, setSeriesEndDate] = useState("");
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [venueId, setVenueId] = useState<string | null>(null);
-  const [opponentName, setOpponentName] = useState("");
   const [isHomeGame, setIsHomeGame] = useState<string | null>(null);
-  const [notes, setNotes] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
 
   function toggleDay(day: number) {
     setSelectedDays((prev) =>
@@ -64,50 +61,52 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
   }
 
   function resetForm() {
-    setTitle("");
+    formRef.current?.reset();
     setEventType("practice");
     setRecurring(false);
-    setStartDate("");
-    setStartTime("");
-    setEndTime("");
-    setSeriesEndDate("");
     setSelectedDays([]);
     setVenueId(null);
-    setOpponentName("");
     setIsHomeGame(null);
-    setNotes("");
     setError(null);
     setResultMessage(null);
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setPending(true);
     setError(null);
     setResultMessage(null);
 
-    // Validate common fields
-    if (!title.trim()) {
+    // Read all values from the native form — avoids controlled state issues
+    const form = e.currentTarget;
+    const title = (form.elements.namedItem("title") as HTMLInputElement)?.value?.trim();
+    const date = (form.elements.namedItem("eventDate") as HTMLInputElement)?.value;
+    const start = (form.elements.namedItem("startTime") as HTMLInputElement)?.value;
+    const end = (form.elements.namedItem("endTime") as HTMLInputElement)?.value;
+    const notes = (form.elements.namedItem("notes") as HTMLTextAreaElement)?.value;
+    const opponent = (form.elements.namedItem("opponentName") as HTMLInputElement)?.value;
+    const type = eventType ?? "practice";
+
+    if (!title) {
       setError("Title is required");
       setPending(false);
       return;
     }
-    if (!startDate || !startTime || !endTime) {
+    if (!date || !start || !end) {
       setError("Date and times are required");
       setPending(false);
       return;
     }
 
-    const type = eventType ?? "practice";
-    const startISO = `${startDate}T${startTime}`;
-    const endISO = `${startDate}T${endTime}`;
-
     if (recurring) {
+      const seriesEnd = (form.elements.namedItem("seriesEnd") as HTMLInputElement)?.value;
+
       if (selectedDays.length === 0) {
         setError("Select at least one day of the week");
         setPending(false);
         return;
       }
-      if (!seriesEndDate) {
+      if (!seriesEnd) {
         setError("Series end date is required");
         setPending(false);
         return;
@@ -115,22 +114,18 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
 
       const result = await createRecurringEvents({
         teamId,
-        title: title.trim(),
+        title,
         eventType: type,
-        startTimeOfDay: startTime,
-        endTimeOfDay: endTime,
+        startTimeOfDay: start,
+        endTimeOfDay: end,
         venueId: venueId || null,
         notes: notes || null,
-        opponentName: opponentName || null,
+        opponentName: opponent || null,
         isHomeGame:
-          isHomeGame === "true"
-            ? true
-            : isHomeGame === "false"
-              ? false
-              : null,
+          isHomeGame === "true" ? true : isHomeGame === "false" ? false : null,
         days: selectedDays,
-        rangeStart: startDate,
-        rangeEnd: seriesEndDate,
+        rangeStart: date,
+        rangeEnd: seriesEnd,
       });
 
       setPending(false);
@@ -144,16 +139,16 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
         }, 1200);
       }
     } else {
-      // Single event — build FormData for the server action
+      // Single event
       const formData = new FormData();
       formData.set("teamId", teamId);
-      formData.set("title", title.trim());
+      formData.set("title", title);
       formData.set("eventType", type);
-      formData.set("startTime", startISO);
-      formData.set("endTime", endISO);
+      formData.set("startTime", `${date}T${start}`);
+      formData.set("endTime", `${date}T${end}`);
       if (venueId) formData.set("venueId", venueId);
       if (notes) formData.set("notes", notes);
-      if (opponentName) formData.set("opponentName", opponentName);
+      if (opponent) formData.set("opponentName", opponent);
       if (isHomeGame) formData.set("isHomeGame", isHomeGame);
 
       const result = await createEvent(formData);
@@ -190,26 +185,22 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <form ref={formRef} noValidate onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="eventTitle">Title</Label>
             <Input
               id="eventTitle"
+              name="title"
               placeholder="e.g., Practice at Tower Grove"
               autoComplete="off"
               className="mt-1"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Event Type</Label>
-              <Select
-                value={eventType}
-                onValueChange={setEventType}
-              >
+              <Select value={eventType} onValueChange={setEventType}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
@@ -235,40 +226,37 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
             </div>
           </div>
 
-          {/* Date */}
+          {/* Date — native <input> to avoid Base UI onChange issues */}
           <div>
             <Label htmlFor="eventDate">
               {recurring ? "Start Date" : "Date"}
             </Label>
-            <Input
+            <input
               id="eventDate"
+              name="eventDate"
               type="date"
-              className="mt-1"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              className={nativeInputClass + " mt-1"}
             />
           </div>
 
-          {/* Start / End time */}
+          {/* Start / End time — native <input> */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="eventStartTime">Start Time</Label>
-              <Input
+              <input
                 id="eventStartTime"
+                name="startTime"
                 type="time"
-                className="mt-1"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
+                className={nativeInputClass + " mt-1"}
               />
             </div>
             <div>
               <Label htmlFor="eventEndTime">End Time</Label>
-              <Input
+              <input
                 id="eventEndTime"
+                name="endTime"
                 type="time"
-                className="mt-1"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
+                className={nativeInputClass + " mt-1"}
               />
             </div>
           </div>
@@ -297,19 +285,18 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
                 </div>
               </div>
 
-              {/* Series end date */}
+              {/* Series end date — native <input> */}
               <div>
                 <Label htmlFor="seriesEnd">Repeat Until</Label>
-                <Input
+                <input
                   id="seriesEnd"
+                  name="seriesEnd"
                   type="date"
-                  className="mt-1"
-                  value={seriesEndDate}
-                  onChange={(e) => setSeriesEndDate(e.target.value)}
+                  className={nativeInputClass + " mt-1"}
                 />
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  Events will be created on selected days from the start
-                  date through this date, using the same time each day.
+                  Events will be created on selected days from the start date
+                  through this date, using the same time each day.
                 </p>
               </div>
             </>
@@ -321,19 +308,15 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
                 <Label htmlFor="opponentName">Opponent</Label>
                 <Input
                   id="opponentName"
+                  name="opponentName"
                   placeholder="e.g., Chesterfield FC"
                   autoComplete="off"
                   className="mt-1"
-                  value={opponentName}
-                  onChange={(e) => setOpponentName(e.target.value)}
                 />
               </div>
               <div>
                 <Label>Home/Away</Label>
-                <Select
-                  value={isHomeGame}
-                  onValueChange={setIsHomeGame}
-                >
+                <Select value={isHomeGame} onValueChange={setIsHomeGame}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
@@ -348,10 +331,7 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
 
           <div>
             <Label>Venue</Label>
-            <Select
-              value={venueId}
-              onValueChange={setVenueId}
-            >
+            <Select value={venueId} onValueChange={setVenueId}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Select venue (optional)" />
               </SelectTrigger>
@@ -369,11 +349,10 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
             <Label htmlFor="eventNotes">Notes</Label>
             <Textarea
               id="eventNotes"
+              name="notes"
               placeholder="Any additional details..."
               rows={2}
               className="mt-1"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
             />
           </div>
 
@@ -386,9 +365,8 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
 
           <DialogFooter>
             <Button
-              type="button"
+              type="submit"
               disabled={pending}
-              onClick={handleSubmit}
               className="bg-accent text-accent-foreground hover:bg-accent/90"
             >
               {pending
@@ -398,7 +376,7 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
                   : "Create Event"}
             </Button>
           </DialogFooter>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
