@@ -93,3 +93,26 @@ export async function createInvite(teamId: string, role: string) {
 
   return { inviteCode: data.invite_code };
 }
+
+export async function deleteTeam(teamId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  // RLS enforces only the creator can delete
+  const { error } = await supabase
+    .from("teams")
+    .delete()
+    .eq("id", teamId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  redirect("/dashboard");
+}

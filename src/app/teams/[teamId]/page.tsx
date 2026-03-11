@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getTeamMembership } from "@/lib/utils/team-auth";
 import { TeamTopbar } from "@/components/team-topbar";
 import { InviteButton } from "./invite-button";
+import { DeleteTeamDialog } from "@/components/delete-team-dialog";
 
 export default async function TeamDashboardPage({
   params,
@@ -9,7 +10,7 @@ export default async function TeamDashboardPage({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
-  const { isCoachOrManager } = await getTeamMembership(teamId);
+  const { user, isCoachOrManager } = await getTeamMembership(teamId);
   const supabase = await createClient();
 
   const { data: team } = await supabase
@@ -49,6 +50,9 @@ export default async function TeamDashboardPage({
     <>
       <TeamTopbar title="Dashboard">
         {isCoachOrManager && <InviteButton teamId={teamId} />}
+        {team.created_by === user.id && (
+          <DeleteTeamDialog teamId={teamId} teamName={team.name} />
+        )}
       </TeamTopbar>
 
       <div className="p-7">
