@@ -66,16 +66,36 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
     setResultMessage(null);
 
     if (recurring) {
+      // For recurring: use startTime/endTime datetime-local to get the time-of-day,
+      // and seriesEnd date input for the end of the series range.
+      const startTime = formData.get("startTime") as string;
+      const endTime = formData.get("endTime") as string;
+      const seriesEnd = formData.get("seriesEnd") as string;
       const venueId = formData.get("venueId") as string;
       const opponentName = formData.get("opponentName") as string;
       const isHomeGame = formData.get("isHomeGame") as string;
+
+      if (!startTime || !endTime || !seriesEnd) {
+        setError("Start time, end time, and series end date are required");
+        setPending(false);
+        return;
+      }
+
+      // Extract time-of-day from the datetime-local values (HH:MM)
+      const startDate = new Date(startTime);
+      const endDate = new Date(endTime);
+      const startTimeOfDay = `${String(startDate.getHours()).padStart(2, "0")}:${String(startDate.getMinutes()).padStart(2, "0")}`;
+      const endTimeOfDay = `${String(endDate.getHours()).padStart(2, "0")}:${String(endDate.getMinutes()).padStart(2, "0")}`;
+
+      // Range: from the start date to the series end date
+      const rangeStart = startTime.split("T")[0];
 
       const result = await createRecurringEvents({
         teamId,
         title: formData.get("title") as string,
         eventType: eventType ?? "practice",
-        startTimeOfDay: formData.get("startTimeOfDay") as string,
-        endTimeOfDay: formData.get("endTimeOfDay") as string,
+        startTimeOfDay,
+        endTimeOfDay,
         venueId: venueId || null,
         notes: (formData.get("notes") as string) || null,
         opponentName: opponentName || null,
@@ -86,8 +106,8 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
               ? false
               : null,
         days: selectedDays,
-        rangeStart: formData.get("rangeStart") as string,
-        rangeEnd: formData.get("rangeEnd") as string,
+        rangeStart,
+        rangeEnd: seriesEnd,
       });
 
       setPending(false);
@@ -183,7 +203,35 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
             </div>
           </div>
 
-          {recurring ? (
+          {/* Start / End time — always datetime-local */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="startTime">
+                {recurring ? "First Start" : "Start Time"}
+              </Label>
+              <Input
+                id="startTime"
+                name="startTime"
+                type="datetime-local"
+                required
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="endTime">
+                {recurring ? "First End" : "End Time"}
+              </Label>
+              <Input
+                id="endTime"
+                name="endTime"
+                type="datetime-local"
+                required
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          {recurring && (
             <>
               {/* Day-of-week picker */}
               <div>
@@ -207,77 +255,22 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
                 </div>
               </div>
 
-              {/* Date range */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="rangeStart">From</Label>
-                  <Input
-                    id="rangeStart"
-                    name="rangeStart"
-                    type="date"
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="rangeEnd">To</Label>
-                  <Input
-                    id="rangeEnd"
-                    name="rangeEnd"
-                    type="date"
-                    required
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
-              {/* Time of day */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="startTimeOfDay">Start Time</Label>
-                  <Input
-                    id="startTimeOfDay"
-                    name="startTimeOfDay"
-                    type="time"
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="endTimeOfDay">End Time</Label>
-                  <Input
-                    id="endTimeOfDay"
-                    name="endTimeOfDay"
-                    type="time"
-                    required
-                    className="mt-1"
-                  />
-                </div>
+              {/* Series end date */}
+              <div>
+                <Label htmlFor="seriesEnd">Repeat Until</Label>
+                <Input
+                  id="seriesEnd"
+                  name="seriesEnd"
+                  type="datetime-local"
+                  required
+                  className="mt-1"
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Events will be created on selected days from the first start
+                  date through this date, using the same time each day.
+                </p>
               </div>
             </>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="startTime">Start Time</Label>
-                <Input
-                  id="startTime"
-                  name="startTime"
-                  type="datetime-local"
-                  required
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="endTime">End Time</Label>
-                <Input
-                  id="endTime"
-                  name="endTime"
-                  type="datetime-local"
-                  required
-                  className="mt-1"
-                />
-              </div>
-            </div>
           )}
 
           {eventType === "game" && (
@@ -350,7 +343,7 @@ export function CreateEventDialog({ teamId, venues }: CreateEventDialogProps) {
               {pending
                 ? "Creating..."
                 : recurring
-                  ? `Create ${selectedDays.length > 0 ? "Series" : "Events"}`
+                  ? "Create Series"
                   : "Create Event"}
             </Button>
           </DialogFooter>

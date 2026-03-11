@@ -92,8 +92,11 @@ export async function createRecurringEvents(data: {
     created_by: string;
   }[] = [];
 
-  const current = new Date(data.rangeStart + "T00:00:00");
-  const end = new Date(data.rangeEnd + "T23:59:59");
+  // Handle both "YYYY-MM-DD" and "YYYY-MM-DDTHH:MM" formats
+  const rangeStartDate = data.rangeStart.split("T")[0];
+  const rangeEndDate = data.rangeEnd.split("T")[0];
+  const current = new Date(rangeStartDate + "T00:00:00");
+  const end = new Date(rangeEndDate + "T23:59:59");
 
   while (current <= end) {
     if (data.days.includes(current.getDay())) {
