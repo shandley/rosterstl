@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { dispatchNotifications } from "@/lib/notifications/dispatch";
+import { getTeamMemberUserIds, getTeamName } from "@/lib/notifications/helpers";
 
 export async function createEvent(formData: FormData) {
   const supabase = await createClient();
@@ -46,6 +48,29 @@ export async function createEvent(formData: FormData) {
 
   revalidatePath(`/teams/${teamId}/schedule`);
   revalidatePath(`/teams/${teamId}`);
+
+  // Notify team members (fire-and-forget)
+  const eventDate = new Date(startTime).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  Promise.all([getTeamMemberUserIds(teamId), getTeamName(teamId)])
+    .then(([memberIds, teamName]) =>
+      dispatchNotifications({
+        type: "event_created",
+        teamId,
+        teamName,
+        title: `New ${eventType}: ${title}`,
+        body: `${title} on ${eventDate}`,
+        recipientUserIds: memberIds,
+        actorUserId: user.id,
+      }),
+    )
+    .catch(console.error);
+
   return { success: true };
 }
 
@@ -127,6 +152,25 @@ export async function createRecurringEvents(data: {
 
   revalidatePath(`/teams/${data.teamId}/schedule`);
   revalidatePath(`/teams/${data.teamId}`);
+
+  // Single batched notification for all recurring events
+  const dayNames = data.days.map((d) =>
+    ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d],
+  );
+  Promise.all([getTeamMemberUserIds(data.teamId), getTeamName(data.teamId)])
+    .then(([memberIds, teamName]) =>
+      dispatchNotifications({
+        type: "recurring_events_created",
+        teamId: data.teamId,
+        teamName,
+        title: `${events.length} ${data.eventType}s added`,
+        body: `${data.title} on ${dayNames.join(", ")} from ${data.rangeStart} to ${data.rangeEnd}`,
+        recipientUserIds: memberIds,
+        actorUserId: user.id,
+      }),
+    )
+    .catch(console.error);
+
   return { success: true, count: events.length };
 }
 
@@ -171,6 +215,30 @@ export async function updateEvent(formData: FormData) {
 
   revalidatePath(`/teams/${teamId}/schedule`);
   revalidatePath(`/teams/${teamId}`);
+
+  // Notify team members (fire-and-forget)
+  const eventDate = new Date(startTime).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  Promise.all([getTeamMemberUserIds(teamId), getTeamName(teamId)])
+    .then(([memberIds, teamName]) =>
+      dispatchNotifications({
+        type: "event_updated",
+        teamId,
+        teamName,
+        title: `Event updated: ${title}`,
+        body: `${title} — ${eventDate}`,
+        recipientUserIds: memberIds,
+        actorUserId: user.id,
+        metadata: { event_id: eventId },
+      }),
+    )
+    .catch(console.error);
+
   return { success: true };
 }
 
@@ -187,6 +255,13 @@ export async function deleteEvent(formData: FormData) {
 
   if (!eventId) return { error: "Event ID is required" };
 
+  // Fetch event title before deletion for the notification
+  const { data: eventData } = await supabase
+    .from("events")
+    .select("title, start_time")
+    .eq("id", eventId)
+    .single();
+
   const { error } = await supabase
     .from("events")
     .delete()
@@ -196,5 +271,28 @@ export async function deleteEvent(formData: FormData) {
 
   revalidatePath(`/teams/${teamId}/schedule`);
   revalidatePath(`/teams/${teamId}`);
+
+  // Notify team members (fire-and-forget)
+  if (eventData) {
+    const eventDate = new Date(eventData.start_time).toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+    Promise.all([getTeamMemberUserIds(teamId), getTeamName(teamId)])
+      .then(([memberIds, teamName]) =>
+        dispatchNotifications({
+          type: "event_cancelled",
+          teamId,
+          teamName,
+          title: `Event cancelled: ${eventData.title}`,
+          body: `${eventData.title} on ${eventDate} has been cancelled`,
+          recipientUserIds: memberIds,
+          actorUserId: user.id,
+        }),
+      )
+      .catch(console.error);
+  }
+
   return { success: true };
 }

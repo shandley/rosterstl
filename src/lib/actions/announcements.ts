@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { dispatchNotifications } from "@/lib/notifications/dispatch";
+import { getTeamMemberUserIds, getTeamName } from "@/lib/notifications/helpers";
 
 export async function createAnnouncement(formData: FormData) {
   const supabase = await createClient();
@@ -30,5 +32,21 @@ export async function createAnnouncement(formData: FormData) {
 
   revalidatePath(`/teams/${teamId}/announcements`);
   revalidatePath(`/teams/${teamId}`);
+
+  // Notify team members (fire-and-forget)
+  Promise.all([getTeamMemberUserIds(teamId), getTeamName(teamId)])
+    .then(([memberIds, teamName]) =>
+      dispatchNotifications({
+        type: "announcement",
+        teamId,
+        teamName,
+        title: title || "New Announcement",
+        body: body.length > 200 ? body.slice(0, 200) + "..." : body,
+        recipientUserIds: memberIds,
+        actorUserId: user.id,
+      }),
+    )
+    .catch(console.error);
+
   return { success: true };
 }
