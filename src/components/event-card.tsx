@@ -2,6 +2,8 @@
 
 import { formatEventDate, formatTime } from "@/lib/utils/date";
 import { RsvpButtons } from "./rsvp-buttons";
+import { WeatherPill } from "./weather-pill";
+import type { WeatherInfo } from "@/lib/weather";
 
 type EventCardProps = {
   event: {
@@ -19,6 +21,7 @@ type EventCardProps = {
   myPlayers: { id: string; full_name: string }[];
   availability: Record<string, string>;
   teamId: string;
+  weather?: WeatherInfo | null;
 };
 
 export function EventCard({
@@ -27,6 +30,7 @@ export function EventCard({
   myPlayers,
   availability,
   teamId,
+  weather,
 }: EventCardProps) {
   const { month, day } = formatEventDate(event.start_time);
   const time = formatTime(event.start_time);
@@ -79,6 +83,11 @@ export function EventCard({
             ? ` · ${event.is_home_game ? "vs" : "@"} ${event.opponent_name}`
             : ""}
         </p>
+        {weather && (
+          <div className="mt-1">
+            <WeatherPill weather={weather} />
+          </div>
+        )}
       </div>
 
       {/* RSVP actions */}

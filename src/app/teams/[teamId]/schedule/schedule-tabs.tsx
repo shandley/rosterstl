@@ -2,6 +2,7 @@
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { EventCard } from "@/components/event-card";
+import type { WeatherInfo } from "@/lib/weather";
 
 type Event = {
   id: string;
@@ -12,7 +13,7 @@ type Event = {
   opponent_name: string | null;
   is_home_game: boolean | null;
   notes: string | null;
-  venues: { name: string; address: string; city: string; state: string } | null;
+  venues: { name: string; address: string; city: string; state: string; lat: number | null; lng: number | null } | null;
 };
 
 type ScheduleTabsProps = {
@@ -21,6 +22,7 @@ type ScheduleTabsProps = {
   myPlayers: { id: string; full_name: string }[];
   availability: Record<string, string>;
   teamId: string;
+  weatherMap?: Record<string, WeatherInfo | null>;
 };
 
 function EventList({
@@ -29,12 +31,14 @@ function EventList({
   availability,
   teamId,
   markFirst,
+  weatherMap,
 }: {
   events: Event[];
   myPlayers: { id: string; full_name: string }[];
   availability: Record<string, string>;
   teamId: string;
   markFirst: boolean;
+  weatherMap?: Record<string, WeatherInfo | null>;
 }) {
   if (events.length === 0) {
     return (
@@ -54,6 +58,7 @@ function EventList({
           myPlayers={myPlayers}
           availability={availability}
           teamId={teamId}
+          weather={weatherMap?.[event.id] ?? null}
         />
       ))}
     </div>
@@ -66,6 +71,7 @@ export function ScheduleTabs({
   myPlayers,
   availability,
   teamId,
+  weatherMap,
 }: ScheduleTabsProps) {
   return (
     <Tabs defaultValue="upcoming">
@@ -85,6 +91,7 @@ export function ScheduleTabs({
           availability={availability}
           teamId={teamId}
           markFirst={true}
+          weatherMap={weatherMap}
         />
       </TabsContent>
 

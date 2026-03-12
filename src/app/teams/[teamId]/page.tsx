@@ -3,6 +3,10 @@ import { getTeamMembership } from "@/lib/utils/team-auth";
 import { TeamTopbar } from "@/components/team-topbar";
 import { InviteButton } from "./invite-button";
 import { DeleteTeamDialog } from "@/components/delete-team-dialog";
+import { WeatherPill } from "@/components/weather-pill";
+import { WeatherAlertBanner } from "@/components/weather-alert-banner";
+import { getWeatherForEvents } from "@/lib/weather";
+import type { WeatherInfo } from "@/lib/weather";
 import Link from "next/link";
 
 export default async function TeamDashboardPage({
@@ -34,7 +38,7 @@ export default async function TeamDashboardPage({
 
   const { data: upcomingEvents } = await supabase
     .from("events")
-    .select("id, title, event_type, start_time, opponent_name, venues(name, address, city, state)")
+    .select("id, title, event_type, start_time, opponent_name, venues(name, address, city, state, lat, lng)")
     .eq("team_id", teamId)
     .gte("start_time", new Date().toISOString())
     .order("start_time")
@@ -46,6 +50,16 @@ export default async function TeamDashboardPage({
     .eq("team_id", teamId)
     .order("created_at", { ascending: false })
     .limit(3);
+
+  // Fetch weather for upcoming events
+  const { weatherMap, alerts } = await getWeatherForEvents(
+    (upcomingEvents ?? []).map((e) => ({
+      id: e.id,
+      title: e.title,
+      start_time: e.start_time,
+      venues: e.venues as { lat: number | null; lng: number | null } | null,
+    })),
+  );
 
   return (
     <>
@@ -91,6 +105,13 @@ export default async function TeamDashboardPage({
           />
         </div>
 
+        {/* Weather alerts */}
+        {alerts.length > 0 && (
+          <div className="mt-6">
+            <WeatherAlertBanner alerts={alerts} />
+          </div>
+        )}
+
         {/* Two-column layout */}
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
           {/* Upcoming Events */}
@@ -110,7 +131,8 @@ export default async function TeamDashboardPage({
               {upcomingEvents && upcomingEvents.length > 0 ? (
                 upcomingEvents.map((event) => {
                   const date = new Date(event.start_time);
-                  const venue = event.venues as unknown as { name: string; address: string; city: string; state: string } | null;
+                  const venue = event.venues as unknown as { name: string; address: string; city: string; state: string; lat: number | null; lng: number | null } | null;
+                  const weather = (weatherMap[event.id] ?? null) as WeatherInfo | null;
                   return (
                     <div
                       key={event.id}
@@ -152,6 +174,11 @@ export default async function TeamDashboardPage({
                             ? ` · vs ${event.opponent_name}`
                             : ""}
                         </p>
+                        {weather && (
+                          <div className="mt-1">
+                            <WeatherPill weather={weather} />
+                          </div>
+                        )}
                       </div>
                       <span className="rounded bg-primary/20 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary-foreground">
                         {event.event_type}

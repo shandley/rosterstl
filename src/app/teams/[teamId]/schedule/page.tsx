@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { getTeamMembership } from "@/lib/utils/team-auth";
 import { TeamTopbar } from "@/components/team-topbar";
-import { EventCard } from "@/components/event-card";
 import { CreateEventDialog } from "@/components/create-event-dialog";
+import { WeatherAlertBanner } from "@/components/weather-alert-banner";
 import { ScheduleTabs } from "./schedule-tabs";
+import { getWeatherForEvents } from "@/lib/weather";
 
 export default async function SchedulePage({
   params,
@@ -17,7 +18,7 @@ export default async function SchedulePage({
   // Fetch all events for the team
   const { data: events } = await supabase
     .from("events")
-    .select("id, title, event_type, start_time, end_time, opponent_name, is_home_game, notes, venues(name, address, city, state)")
+    .select("id, title, event_type, start_time, end_time, opponent_name, is_home_game, notes, venues(name, address, city, state, lat, lng)")
     .eq("team_id", teamId)
     .order("start_time");
 
@@ -59,6 +60,16 @@ export default async function SchedulePage({
       ?.filter((e) => e.start_time < now)
       .reverse() ?? [];
 
+  // Fetch weather for upcoming events
+  const { weatherMap, alerts } = await getWeatherForEvents(
+    upcomingEvents.map((e) => ({
+      id: e.id,
+      title: e.title,
+      start_time: e.start_time,
+      venues: e.venues as { lat: number | null; lng: number | null } | null,
+    })),
+  );
+
   return (
     <>
       <TeamTopbar title="Schedule">
@@ -68,12 +79,14 @@ export default async function SchedulePage({
       </TeamTopbar>
 
       <div className="p-7">
+        {alerts.length > 0 && <WeatherAlertBanner alerts={alerts} />}
         <ScheduleTabs
           upcomingEvents={upcomingEvents}
           pastEvents={pastEvents}
           myPlayers={myPlayers ?? []}
           availability={availabilityMap}
           teamId={teamId}
+          weatherMap={weatherMap}
         />
       </div>
     </>
