@@ -15,7 +15,7 @@ export async function sendNotificationEmails(params: EmailParams) {
   }
 
   const emails = params.recipients.map((r) => ({
-    from: "RosterSTL <notifications@rosterstl.app>",
+    from: process.env.RESEND_FROM_EMAIL || "RosterSTL <onboarding@resend.dev>",
     to: r.email,
     subject: `[${params.teamName}] ${params.title}`,
     text: `Hi ${r.full_name || "there"},\n\n${params.body}\n\n---\nRosterSTL — https://rosterstl.app`,
